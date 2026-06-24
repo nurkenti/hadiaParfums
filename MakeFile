@@ -4,5 +4,8 @@ build:
 run: build
 	./bin/hadiaParfums
 
+run-bot:
+	go run cmd/bot/main.go
+
 test:
 	go test -v ./...
