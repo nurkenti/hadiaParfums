@@ -1,0 +1,8 @@
+build:
+	go build -o bin/hadiaParfums  cmd/main.go
+
+run: build
+	./bin/hadiaParfums
+
+test:
+	go test -v ./...
