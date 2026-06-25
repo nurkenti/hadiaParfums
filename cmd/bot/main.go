@@ -20,8 +20,9 @@ func main() {
 	if err != nil {
 		log.Panic(err)
 	}
+	tgbot.SetMenuCommands(bot)
 
-	bot.Debug = true // Для max ditales
+	bot.Debug = false // Для max ditales
 
 	log.Printf("Authorized on account %s", bot.Self.UserName)
 
@@ -29,11 +30,7 @@ func main() {
 	if token == "" {
 		log.Fatal("Ошибка с токеном")
 	}
-
-	handler, err := tgbot.NewHandler(token)
-	if err != nil {
-		log.Fatal(err)
-	}
+	handler := tgbot.NewHandler(bot)
 	handler.Start()
 
 	/*u := tgbotapi.NewUpdate(0)
