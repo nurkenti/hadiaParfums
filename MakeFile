@@ -9,3 +9,21 @@ run-bot:
 
 test:
 	go test -v ./...
+
+createdb:
+	docker exec -it postgres19 createdb --username=root --owner=root hadiaParfums
+
+dropdb:
+	docker exec -it postgres19 dropdb hadiaParfums
+
+postgres:
+	docker run --name postgres19 -p 5432:5432 -e POSTGRES_USER=root -e POSTGRES_PASSWORD=secret -d postgres:19beta1-alpine
+
+migrateup:
+	migrate -path migration -database "postgresql://root:secret@localhost:5432/hadiaParfums?sslmode=disable" -verbose up
+
+migratedown:
+	migrate -path migration -database "postgresql://root:secret@localhost:5432/hadiaParfums?sslmode=disable" -verbose down
+
+
+.PHONY: createdb, dropdb, migrateup, migratedown 
