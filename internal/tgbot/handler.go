@@ -7,8 +7,11 @@ type Handler struct {
 	chatID int64
 }
 
+var kz bool
+
 func (h *Handler) SendMessage(t string) {
 	msg := tgbotapi.NewMessage(h.chatID, t)
+
 	h.bot.Send(msg)
 }
 func NewHandler(bot *tgbotapi.BotAPI) *Handler {
@@ -16,13 +19,24 @@ func NewHandler(bot *tgbotapi.BotAPI) *Handler {
 }
 
 func (h *Handler) HandlerStart() {
-	msg := tgbotapi.NewMessage(h.chatID, "Салам! Это Hadia Parfums")
-	msg.ReplyMarkup = mainMenu()
+	msg := tgbotapi.NewMessage(h.chatID, "Салам! Это Hadia Parfums\nПрежде чем начать Выберите Язык:")
+	msg.ReplyMarkup = menuLang()
 	h.bot.Send(msg)
 
 }
 func (h *Handler) HandlerInfo() {
 	msg := tgbotapi.NewMessage(h.chatID, "Информация жайлы")
+	h.bot.Send(msg)
+
+}
+func (h *Handler) KzInfo() {
+	msg := tgbotapi.NewMessage(h.chatID, "Кош келдыныз, Не калайсыз?")
+	msg.ReplyMarkup = mainMenu()
+	h.bot.Send(msg)
+
+}
+func (h *Handler) RuInfo() {
+	msg := tgbotapi.NewMessage(h.chatID, "Добро пожаловать, чего желаете ?")
 	msg.ReplyMarkup = mainMenu()
 	h.bot.Send(msg)
 
@@ -41,6 +55,8 @@ func (h *Handler) Start() {
 		h.HandlerMessage(update.Message.Text)
 
 	}
+}
+func (h *Handler) Catalog() {
 
 }
 
@@ -50,6 +66,12 @@ func (h *Handler) HandlerMessage(text string) {
 		h.HandlerStart()
 	case "/info":
 		h.HandlerInfo()
+	case "Казахский":
+		h.KzInfo()
+	case "Руский":
+		h.RuInfo()
+	case "Каталог":
+		h.Catalog()
 	default:
 		h.SendMessage("Щщс дурстап жазсай")
 	}
