@@ -38,3 +38,11 @@ CREATE TABLE orders (
     promo_code_id INT REFERENCES promo_codes(id) NULL,
     created_at TIMESTAMP DEFAULT NOW()
 );
+
+CREATE TABLE product_variants (
+    id SERIAL PRIMARY KEY,
+    product_id INT REFERENCES products(id),
+    volume_ml INT NOT NULL,
+    price DECIMAL(10,2) NOT NULL,
+    stock INT DEFAULT 0
+);
