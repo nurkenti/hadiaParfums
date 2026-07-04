@@ -50,6 +50,7 @@ type PromoCode struct {
 type User struct {
 	ID        int32
 	ChatID    int64
+	Name      string
 	Lang      pgtype.Text
 	IsAdmin   pgtype.Bool
 	CreatedAt pgtype.Timestamp

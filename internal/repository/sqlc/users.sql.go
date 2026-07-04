@@ -14,24 +14,27 @@ import (
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (
   chat_id,
-  lang
+  lang,
+  name
   
 ) VALUES (
-  $1, $2 
-)RETURNING id, chat_id, lang, is_admin, created_at
+  $1, $2 , $3
+)RETURNING id, chat_id, name, lang, is_admin, created_at
 `
 
 type CreateUserParams struct {
 	ChatID int64
 	Lang   pgtype.Text
+	Name   string
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
-	row := q.db.QueryRow(ctx, createUser, arg.ChatID, arg.Lang)
+	row := q.db.QueryRow(ctx, createUser, arg.ChatID, arg.Lang, arg.Name)
 	var i User
 	err := row.Scan(
 		&i.ID,
 		&i.ChatID,
+		&i.Name,
 		&i.Lang,
 		&i.IsAdmin,
 		&i.CreatedAt,
@@ -50,7 +53,7 @@ func (q *Queries) DeleteUser(ctx context.Context, chatID int64) error {
 }
 
 const getUser = `-- name: GetUser :one
-SELECT id, chat_id, lang, is_admin, created_at FROM users
+SELECT id, chat_id, name, lang, is_admin, created_at FROM users
 WHERE chat_id = $1 LIMIT 1
 `
 
@@ -60,6 +63,26 @@ func (q *Queries) GetUser(ctx context.Context, chatID int64) (User, error) {
 	err := row.Scan(
 		&i.ID,
 		&i.ChatID,
+		&i.Name,
+		&i.Lang,
+		&i.IsAdmin,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getUserByName = `-- name: GetUserByName :one
+SELECT id, chat_id, name, lang, is_admin, created_at FROM users
+WHERE name = $1 LIMIT 1
+`
+
+func (q *Queries) GetUserByName(ctx context.Context, name string) (User, error) {
+	row := q.db.QueryRow(ctx, getUserByName, name)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.ChatID,
+		&i.Name,
 		&i.Lang,
 		&i.IsAdmin,
 		&i.CreatedAt,
@@ -68,7 +91,7 @@ func (q *Queries) GetUser(ctx context.Context, chatID int64) (User, error) {
 }
 
 const listUser = `-- name: ListUser :many
-SELECT id, chat_id, lang, is_admin, created_at FROM users
+SELECT id, chat_id, name, lang, is_admin, created_at FROM users
 ORDER BY chat_id
 LIMIT $1
 OFFSET $2
@@ -91,6 +114,7 @@ func (q *Queries) ListUser(ctx context.Context, arg ListUserParams) ([]User, err
 		if err := rows.Scan(
 			&i.ID,
 			&i.ChatID,
+			&i.Name,
 			&i.Lang,
 			&i.IsAdmin,
 			&i.CreatedAt,
@@ -109,7 +133,7 @@ const updateUser = `-- name: UpdateUser :one
 UPDATE users
 SET lang = $2
 WHERE chat_id = $1
-RETURNING id, chat_id, lang, is_admin, created_at
+RETURNING id, chat_id, name, lang, is_admin, created_at
 `
 
 type UpdateUserParams struct {
@@ -123,6 +147,7 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, e
 	err := row.Scan(
 		&i.ID,
 		&i.ChatID,
+		&i.Name,
 		&i.Lang,
 		&i.IsAdmin,
 		&i.CreatedAt,

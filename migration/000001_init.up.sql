@@ -1,6 +1,7 @@
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
     chat_id BIGINT UNIQUE NOT NULL,
+    name TEXT NOT NULL, 
     lang VARCHAR(2) DEFAULT 'ru',
     is_admin BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT NOW()

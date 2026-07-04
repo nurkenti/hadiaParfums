@@ -1,15 +1,20 @@
 -- name: CreateUser :one
 INSERT INTO users (
   chat_id,
-  lang
+  lang,
+  name
   
 ) VALUES (
-  $1, $2 
+  $1, $2 , $3
 )RETURNING *;
 
 -- name: GetUser :one
 SELECT * FROM users
 WHERE chat_id = $1 LIMIT 1;
+
+-- name: GetUserByName :one
+SELECT * FROM users
+WHERE name = $1 LIMIT 1;
 
 -- name: ListUser :many
 SELECT * FROM users
