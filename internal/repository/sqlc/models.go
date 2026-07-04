@@ -22,10 +22,18 @@ type Order struct {
 type Product struct {
 	ID          int32
 	Name        string
-	Price       pgtype.Numeric
-	Stock       pgtype.Int4
 	Description pgtype.Text
+	Category    string
 	CreatedAt   pgtype.Timestamp
+}
+
+type ProductVariant struct {
+	ID        int32
+	ProductID pgtype.Int4
+	VolumeMl  int32
+	Price     pgtype.Numeric
+	Stock     pgtype.Int4
+	Sku       pgtype.Text
 }
 
 type PromoCode struct {

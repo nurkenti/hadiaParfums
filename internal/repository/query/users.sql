@@ -17,7 +17,7 @@ ORDER BY chat_id
 LIMIT $1
 OFFSET $2;
 
--- name: UpdateUser :exec
+-- name: UpdateUser :one
 UPDATE users
 SET lang = $2
 WHERE chat_id = $1

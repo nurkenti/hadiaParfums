@@ -105,7 +105,7 @@ func (q *Queries) ListUser(ctx context.Context, arg ListUserParams) ([]User, err
 	return items, nil
 }
 
-const updateUser = `-- name: UpdateUser :exec
+const updateUser = `-- name: UpdateUser :one
 UPDATE users
 SET lang = $2
 WHERE chat_id = $1
@@ -117,7 +117,15 @@ type UpdateUserParams struct {
 	Lang   pgtype.Text
 }
 
-func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) error {
-	_, err := q.db.Exec(ctx, updateUser, arg.ChatID, arg.Lang)
-	return err
+func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error) {
+	row := q.db.QueryRow(ctx, updateUser, arg.ChatID, arg.Lang)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.ChatID,
+		&i.Lang,
+		&i.IsAdmin,
+		&i.CreatedAt,
+	)
+	return i, err
 }

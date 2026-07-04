@@ -9,10 +9,18 @@ CREATE TABLE users (
 CREATE TABLE products (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
+    description TEXT,
+    category VARCHAR(50) NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE product_variants (
+    id SERIAL PRIMARY KEY,
+    product_id INT REFERENCES products(id) ON DELETE RESTRICT,
+    volume_ml INT NOT NULL,
     price DECIMAL(10,2) NOT NULL,
     stock INT DEFAULT 0,
-    description TEXT,
-    created_at TIMESTAMP DEFAULT NOW()
+    sku VARCHAR(50) UNIQUE 
 );
 
 
@@ -39,10 +47,3 @@ CREATE TABLE orders (
     created_at TIMESTAMP DEFAULT NOW()
 );
 
-CREATE TABLE product_variants (
-    id SERIAL PRIMARY KEY,
-    product_id INT REFERENCES products(id),
-    volume_ml INT NOT NULL,
-    price DECIMAL(10,2) NOT NULL,
-    stock INT DEFAULT 0
-);

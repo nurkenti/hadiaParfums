@@ -1,11 +1,10 @@
 -- name: CreateProduct :one
 INSERT INTO products (
   name,
-  price,
-  stock,
+  category,
   description
 ) VALUES (
-  $1, $2, $3, $4
+  $1, $2, $3 
 )RETURNING *;
 
 
@@ -30,14 +29,18 @@ LIMIT $1
 OFFSET $2;
 
 
--- name: UpdateProductPrice :one
+-- name: UpdateProductCategory :one
 UPDATE products
-SET price = $2
+SET category = $2
 WHERE id = $1
 RETURNING *;
 
--- name: UpdateProductStock :one
+-- name: UpdateProductDiscription :one
 UPDATE products
-SET stock = $2
+SET description = $2
 WHERE id = $1
 RETURNING *;
+
+-- name: DeleteProductByID :exec
+DELETE FROM products
+WHERE id = $1;
