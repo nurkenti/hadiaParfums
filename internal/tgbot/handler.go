@@ -2,9 +2,11 @@ package tgbot
 
 import (
 	"context"
+	"fmt"
 	"log"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 	service "github.com/nurkenti/hadiaParfums/internal/core/service/admin"
 )
 
@@ -97,7 +99,10 @@ func (h *Handler) HandlerMessageUser(text string, chatID int64) {
 	}
 }
 
-//                     ADMIN
+// ADMIN
+type AnswerAdminForProd struct {
+	name string
+}
 
 func (h *Handler) Admin(chatID int64) bool {
 	adm := h.adminService
@@ -124,17 +129,41 @@ func (h *Handler) AdmService(chatID int64) {
 
 	//	prod := h.productService
 }
+
+var waiting = make(map[int64]string)
+var tempData = make(map[int64]ProductInput)
+
+var (
+	StateWaitName        = "w_name"
+	StateWaitCategory    = "w_category"
+	StateWaitDescription = "w_descript"
+)
+
 func (h *Handler) AddProdMenu(chatID int64) {
 	msg := tgbotapi.NewMessage(chatID, "Выбирите вариант для Товара:")
 	msg.ReplyMarkup = CommandForProdAdmin()
 	h.bot.Send(msg)
 }
-func (h *Handler) AddProduct(chatID int64) {
-	//	product:= h.productService
+func (h *Handler) AskProduct(chatID int64) {
+	// инициализируем чистый структуру для этого чата
+	tempData[chatID] = ProductInput{}
+	waiting[chatID] = StateWaitName // Первый шаг
+	msg := tgbotapi.NewMessage(chatID, "          Шаг 1/3\nНапишите имя товара: ")
+	h.bot.Send(msg)
+}
 
+type ProductInput struct {
+	name     string
+	category string
+	descrip  string
 }
 
 func (h *Handler) HandlerMsgAdmin(text string, chatID int64) {
+	state, isWaiting := waiting[chatID]
+	if isWaiting {
+		h.handlerAdminSteps(state, text, chatID)
+		return
+	}
 	switch text {
 	case "/start":
 		h.AdmService(chatID)
@@ -142,6 +171,60 @@ func (h *Handler) HandlerMsgAdmin(text string, chatID int64) {
 	case "Товар":
 		h.AddProdMenu(chatID)
 	case "Добавить":
+		h.AskProduct(chatID)
+
+	}
+}
+func (h *Handler) handlerAdminSteps(state, text string, chatID int64) {
+	product := h.productService
+	data := tempData[chatID] // Достаем то что уже успели записать
+
+	switch state {
+	case StateWaitName:
+		// Записоваем Имя
+		data.name = text
+		tempData[chatID] = data
+
+		// Переводим на след шаг
+		waiting[chatID] = StateWaitCategory
+		msg := tgbotapi.NewMessage(chatID, "          Шаг 2/3\nВыбери категорию товара: ")
+		msg.ReplyMarkup = CommandForProduct()
+		h.bot.Send(msg)
+
+	case StateWaitCategory:
+		// Записываем категорию
+		data.category = text
+		tempData[chatID] = data
+
+		waiting[chatID] = StateWaitDescription
+		msg := tgbotapi.NewMessage(chatID, "          Шаг 3/3\nНапишите описание товара:")
+		h.bot.Send(msg)
+
+	case StateWaitDescription:
+		data.descrip = text
+
+		// Все данные сохранены. Добавим в db
+		ctx := context.Background()
+		err := product.AddProduct(
+			data.name,
+			data.category,
+			pgtype.Text{String: data.descrip, Valid: true},
+			ctx,
+		)
+
+		if err != nil {
+			msg := tgbotapi.NewMessage(chatID, "❌ Ошибка при сохранении в БД: %v")
+			h.bot.Send(msg)
+			fmt.Println("СУУУКА")
+		} else {
+			reply := fmt.Sprintf("✅ Товар успешно добавлен!\n\n🏷 Название: %s\n📁 Категория: %s\n📝 Описание: %s", data.name, data.category, data.descrip)
+			msg := tgbotapi.NewMessage(chatID, reply)
+			h.bot.Send(msg)
+			fmt.Println("БУУКА")
+		}
+		// Очищаем состояние и временные данные, чтобы админ мог снова пользоваться кнопками
+		delete(waiting, chatID)
+		delete(tempData, chatID)
 
 	}
 }

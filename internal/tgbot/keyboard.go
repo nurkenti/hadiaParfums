@@ -54,6 +54,20 @@ func CommandForAdmin() tgbotapi.ReplyKeyboardMarkup {
 	)
 	return commands
 }
+func CommandForProduct() tgbotapi.ReplyKeyboardMarkup {
+	commands := tgbotapi.NewOneTimeReplyKeyboard(
+		tgbotapi.NewKeyboardButtonRow(
+			tgbotapi.NewKeyboardButton("Мужской"),
+		),
+		tgbotapi.NewKeyboardButtonRow(
+			tgbotapi.NewKeyboardButton("Женский"),
+		),
+		tgbotapi.NewKeyboardButtonRow(
+			tgbotapi.NewKeyboardButton("Унисекс"),
+		),
+	)
+	return commands
+}
 
 func CommandForProdAdmin() tgbotapi.ReplyKeyboardMarkup {
 	commands := tgbotapi.NewOneTimeReplyKeyboard(
