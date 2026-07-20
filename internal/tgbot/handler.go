@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strconv"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -17,8 +18,8 @@ type Handler struct {
 	productService *service.ProductService
 }
 
-func (h *Handler) SendMessage(t string) {
-	msg := tgbotapi.NewMessage(h.chatID, t)
+func (h *Handler) SendMessage(chatID int64, t string) {
+	msg := tgbotapi.NewMessage(chatID, t)
 	h.bot.Send(msg)
 }
 
@@ -137,6 +138,8 @@ var (
 	StateWaitName        = "w_name"
 	StateWaitCategory    = "w_category"
 	StateWaitDescription = "w_descript"
+
+	StatusWaitIdProd = "w_id"
 )
 
 func (h *Handler) AddProdMenu(chatID int64) {
@@ -156,6 +159,7 @@ type ProductInput struct {
 	name     string
 	category string
 	descrip  string
+	id       int32
 }
 
 func (h *Handler) HandlerMsgAdmin(text string, chatID int64) {
@@ -172,14 +176,24 @@ func (h *Handler) HandlerMsgAdmin(text string, chatID int64) {
 		h.AddProdMenu(chatID)
 	case "Добавить":
 		h.AskProduct(chatID)
+	case "Удалить":
+		h.DeleteProduct(chatID)
 
 	}
 }
+func (h *Handler) DeleteProduct(chatID int64) {
+	tempData[chatID] = ProductInput{}
+	waiting[chatID] = StatusWaitIdProd
+	msg := tgbotapi.NewMessage(chatID, "Напишите ID продукта для удаление: ")
+	h.bot.Send(msg)
+}
+
 func (h *Handler) handlerAdminSteps(state, text string, chatID int64) {
 	product := h.productService
 	data := tempData[chatID] // Достаем то что уже успели записать
 
 	switch state {
+	// AddProd
 	case StateWaitName:
 		// Записоваем Имя
 		data.name = text
@@ -226,5 +240,26 @@ func (h *Handler) handlerAdminSteps(state, text string, chatID int64) {
 		delete(waiting, chatID)
 		delete(tempData, chatID)
 
+		// ------------------------------------------------
+
+		// Delete Prod
+	case StatusWaitIdProd:
+		id, err := strconv.ParseInt(text, 10, 32)
+		if err != nil {
+			h.SendMessage(chatID, "❌ Неверный формат ID. Пожалуйста, введите число:")
+		}
+		data.id = int32(id)
+
+		ctx := context.Background()
+		err = product.DeleteProduct(ctx, int32(id))
+		if err != nil {
+			h.SendMessage(chatID, "❌ Ошибка при удалений")
+		} else {
+			h.SendMessage(chatID, ("✅ Товар успешно удален!"))
+		}
+		delete(waiting, chatID)
+		delete(tempData, chatID)
+
 	}
+
 }

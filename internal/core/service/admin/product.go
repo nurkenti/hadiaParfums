@@ -28,3 +28,13 @@ func (p *ProductService) AddProduct(name string, category string, descrip pgtype
 
 	return nil
 }
+
+func (p *ProductService) DeleteProduct(ctx context.Context, id int32) error {
+	err := p.product.DeleteProductByID(ctx, id)
+	if err != nil {
+		return errors.New("Product errors")
+	}
+	return nil
+}
+
+func (p *ProductService) ListProdByName()
