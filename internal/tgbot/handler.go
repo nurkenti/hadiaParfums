@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -140,6 +141,8 @@ var (
 	StateWaitDescription = "w_descript"
 
 	StatusWaitIdProd = "w_id"
+
+	StatusWaitListName = "w_listname"
 )
 
 func (h *Handler) AddProdMenu(chatID int64) {
@@ -178,8 +181,17 @@ func (h *Handler) HandlerMsgAdmin(text string, chatID int64) {
 		h.AskProduct(chatID)
 	case "Удалить":
 		h.DeleteProduct(chatID)
+	case "Список":
+		h.ListProdName(chatID)
 
 	}
+}
+func (h *Handler) ListProdName(chatID int64) {
+	tempData[chatID] = ProductInput{}
+	waiting[chatID] = StatusWaitListName
+
+	msg := tgbotapi.NewMessage(chatID, "Напиши название товара для поиска: ")
+	h.bot.Send(msg)
 }
 func (h *Handler) DeleteProduct(chatID int64) {
 	tempData[chatID] = ProductInput{}
@@ -257,6 +269,38 @@ func (h *Handler) handlerAdminSteps(state, text string, chatID int64) {
 		} else {
 			h.SendMessage(chatID, ("✅ Товар успешно удален!"))
 		}
+		delete(waiting, chatID)
+		delete(tempData, chatID)
+
+	case StatusWaitListName:
+		data.name = text
+		Prods, err := product.ListProdByName(context.Background(), data.name)
+		if err != nil {
+			h.SendMessage(chatID, "❌ Ошибка при поиске")
+			delete(waiting, chatID)
+			return
+		}
+		// Если ничего не нашли
+		if len(Prods) == 0 {
+			h.SendMessage(chatID, "📭 Товары с таким названием не найдены.")
+			delete(waiting, chatID)
+		}
+		// strings.Builder для красивой сборке текста списка
+		var builder strings.Builder
+		builder.WriteString("📋 **Результаты поиска товаров:**\n\n")
+
+		for i, prod := range Prods {
+			itemText := fmt.Sprintf("%d. 📦 **%s** (ID: `%d`)\n📁 Категория: %s\n📝 Описание: %s\n\n",
+				i+1, prod.Name, prod.ID, prod.Category, prod.Description)
+
+			builder.WriteString(itemText)
+		}
+
+		// Отправляем одно сообщение всех списков
+		msg := tgbotapi.NewMessage(chatID, builder.String())
+		msg.ParseMode = "Markdown"
+		h.bot.Send(msg)
+
 		delete(waiting, chatID)
 		delete(tempData, chatID)
 

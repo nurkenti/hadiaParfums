@@ -12,6 +12,13 @@ type ProductService struct {
 	product *db.Queries
 }
 
+type ProductDTO struct {
+	ID          int32
+	Name        string
+	Description string
+	Category    string
+}
+
 func NewProductService(product *db.Queries) *ProductService {
 	return &ProductService{product: product}
 }
@@ -37,4 +44,32 @@ func (p *ProductService) DeleteProduct(ctx context.Context, id int32) error {
 	return nil
 }
 
-func (p *ProductService) ListProdByName()
+func (p *ProductService) ListProdByName(ctx context.Context, name string) ([]ProductDTO, error) {
+
+	searchPattern := "%" + name + "%"
+
+	prods, err := p.product.ListProductByName(ctx, db.ListProductByNameParams{Name: searchPattern, Limit: 10, Offset: 0})
+	if err != nil {
+		return nil, err
+	}
+
+	// Выделяем память под слайс DTO
+	result := make([]ProductDTO, len(prods))
+	for i, prod := range prods {
+		// Безопасно извлекаем текст из pgtype.Text
+		var desc string
+		if prod.Description.Valid {
+			desc = prod.Description.String
+		}
+
+		result[i] = ProductDTO{
+			ID:          prod.ID,
+			Name:        prod.Name,
+			Category:    prod.Category,
+			Description: desc,
+		}
+
+	}
+
+	return result, nil
+}
