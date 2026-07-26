@@ -6,6 +6,7 @@ import (
 	"log"
 	"strconv"
 	"strings"
+	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -44,11 +45,11 @@ func (h *Handler) Start() {
 		switch h.Admin(chatID) {
 		case true:
 			log.Printf("Admin ID: %d\nMessage: %s", chatID, text)
-			h.HandlerMsgAdmin(text, chatID)
+			h.HandlerMsgAdmin(update.Message, chatID)
 
 		case false:
 			log.Printf("Chat ID: %d\nMessage: %s", chatID, text)
-			h.HandlerMessageUser(text, chatID)
+			h.HandlerMessageUser(update.Message, text, chatID)
 		}
 	}
 
@@ -81,7 +82,7 @@ func (h *Handler) RuInfo(chatID int64) {
 func (h *Handler) Catalog(chatID int64) {
 }
 
-func (h *Handler) HandlerMessageUser(text string, chatID int64) {
+func (h *Handler) HandlerMessageUser(msg *tgbotapi.Message, text string, chatID int64) {
 	switch text {
 	case "/start":
 		h.HandlerStart(chatID)
@@ -96,7 +97,7 @@ func (h *Handler) HandlerMessageUser(text string, chatID int64) {
 	case "012004adm":
 		a := h.Admin(chatID)
 		if a == true {
-			h.AdmService(chatID)
+			h.AdmService(chatID, msg.MessageID)
 		}
 	}
 }
@@ -122,14 +123,13 @@ func (h *Handler) Admin(chatID int64) bool {
 	return true
 }
 
-func (h *Handler) AdmService(chatID int64) {
+func (h *Handler) AdmService(chatID int64, userMsgID int) {
 	msg := tgbotapi.NewMessage(chatID, "Как админ вы можете выбрать:")
 	msg.ReplyMarkup = CommandForAdmin()
-	h.bot.Send(msg)
+	h.saveMsg(msg, chatID, userMsgID)
 	// 1. Товар либо Заказы
 	// 2. (Товар) Добавить, Изменить, Удалить, Посмотреть
 
-	//	prod := h.productService
 }
 
 var waiting = make(map[int64]string)
@@ -145,10 +145,11 @@ var (
 	StatusWaitListName = "w_listname"
 )
 
-func (h *Handler) AddProdMenu(chatID int64) {
+func (h *Handler) AddProdMenu(chatID int64, userMsgID int) {
 	msg := tgbotapi.NewMessage(chatID, "Выбирите вариант для Товара:")
+	//SaveAndDel[chatID] = DeleteSessionMsg{msgToDel: []int{msg}}
 	msg.ReplyMarkup = CommandForProdAdmin()
-	h.bot.Send(msg)
+	h.saveMsg(msg, chatID, userMsgID)
 }
 func (h *Handler) AskProduct(chatID int64) {
 	// инициализируем чистый структуру для этого чата
@@ -158,41 +159,83 @@ func (h *Handler) AskProduct(chatID int64) {
 	h.bot.Send(msg)
 }
 
-type ProductInput struct {
-	name     string
-	category string
-	descrip  string
-	id       int32
+//                Clear functions
+
+type DeleteSessionMsg struct {
+	msgToDel []int
 }
 
-func (h *Handler) HandlerMsgAdmin(text string, chatID int64) {
-	state, isWaiting := waiting[chatID]
-	if isWaiting {
-		h.handlerAdminSteps(state, text, chatID)
+var saveAndDel = make(map[int64]DeleteSessionMsg)
+
+func (h *Handler) clearSessionMessages(chatID int64, messageIDs []int) {
+	for _, msgID := range messageIDs {
+		delMsg := tgbotapi.NewDeleteMessage(chatID, msgID)
+		// Игнорим ошибку, так как сообщение могло быть уже удалено вручную
+		_, _ = h.bot.Send(delMsg)
+		delete(saveAndDel, chatID)
+	}
+
+}
+func (h *Handler) saveMsg(msg tgbotapi.MessageConfig, chatID int64, userMsgID int) {
+	// Ловим отправленное ботом сообщ (sentMsg)
+	sentMsg, err := h.bot.Send(msg)
+	if err != nil {
+		fmt.Printf("Ошибка отправки сообщения бота: %v\n", err)
 		return
 	}
-	switch text {
-	case "/start":
-		h.AdmService(chatID)
+	delData := saveAndDel[chatID]
 
+	// Добавляем ID админа
+	if userMsgID > 0 {
+		delData.msgToDel = append(delData.msgToDel, userMsgID)
+		fmt.Printf("%d", userMsgID)
+	}
+	// Добавляем ID бота
+	delData.msgToDel = append(delData.msgToDel, sentMsg.MessageID)
+
+	// Перезаписываем мапу
+	saveAndDel[chatID] = delData
+}
+
+//                  Main Functions
+
+type ProductInput struct {
+	name         string
+	category     string
+	descrip      string
+	id           int32
+	messageToDel []int // Массив для удаление сообщ одной сессий
+}
+
+func (h *Handler) HandlerMsgAdmin(msg *tgbotapi.Message, chatID int64) {
+	state, isWaiting := waiting[chatID]
+	if isWaiting {
+		h.handlerAdminSteps(state, msg, chatID)
+		return
+	}
+	switch msg.Text {
+	case "/start":
+		h.clearSessionMessages(chatID, saveAndDel[chatID].msgToDel)
+		h.AdmService(chatID, msg.MessageID)
 	case "Товар":
-		h.AddProdMenu(chatID)
+		h.AddProdMenu(chatID, msg.MessageID)
 	case "Добавить":
 		h.AskProduct(chatID)
 	case "Удалить":
 		h.DeleteProduct(chatID)
 	case "Список":
-		h.ListProdName(chatID)
+		//saveAndDel[chatID] = DeleteSessionMsg{msgToDel: []int{msg.MessageID}}
+		h.ListProdName(chatID, msg.MessageID)
 
 	}
 }
-func (h *Handler) ListProdName(chatID int64) {
-	tempData[chatID] = ProductInput{}
+func (h *Handler) ListProdName(chatID int64, userMsgID int) {
 	waiting[chatID] = StatusWaitListName
 
 	msg := tgbotapi.NewMessage(chatID, "Напиши название товара для поиска: ")
-	h.bot.Send(msg)
+	h.saveMsg(msg, chatID, userMsgID)
 }
+
 func (h *Handler) DeleteProduct(chatID int64) {
 	tempData[chatID] = ProductInput{}
 	waiting[chatID] = StatusWaitIdProd
@@ -200,12 +243,16 @@ func (h *Handler) DeleteProduct(chatID int64) {
 	h.bot.Send(msg)
 }
 
-func (h *Handler) handlerAdminSteps(state, text string, chatID int64) {
+func (h *Handler) handlerAdminSteps(state string, msg *tgbotapi.Message, chatID int64) {
 	product := h.productService
 	data := tempData[chatID] // Достаем то что уже успели записать
+	delData := saveAndDel[chatID]
+
+	text := msg.Text
 
 	switch state {
 	// AddProd
+
 	case StateWaitName:
 		// Записоваем Имя
 		data.name = text
@@ -256,6 +303,7 @@ func (h *Handler) handlerAdminSteps(state, text string, chatID int64) {
 
 		// Delete Prod
 	case StatusWaitIdProd:
+
 		id, err := strconv.ParseInt(text, 10, 32)
 		if err != nil {
 			h.SendMessage(chatID, "❌ Неверный формат ID. Пожалуйста, введите число:")
@@ -273,17 +321,28 @@ func (h *Handler) handlerAdminSteps(state, text string, chatID int64) {
 		delete(tempData, chatID)
 
 	case StatusWaitListName:
+		//data.messageToDel = append(data.messageToDel, msg.MessageID)
+		delData.msgToDel = append(delData.msgToDel, msg.MessageID)
 		data.name = text
 		Prods, err := product.ListProdByName(context.Background(), data.name)
 		if err != nil {
-			h.SendMessage(chatID, "❌ Ошибка при поиске")
+			// Ловим сообщ об ошибке, чтобы оно стрело
+			errMsg, _ := h.bot.Send(tgbotapi.NewMessage(chatID, "❌ Ошибка при поиске"))
+			data.messageToDel = append(data.messageToDel, errMsg.MessageID)
 			delete(waiting, chatID)
 			return
 		}
 		// Если ничего не нашли
 		if len(Prods) == 0 {
-			h.SendMessage(chatID, "📭 Товары с таким названием не найдены.")
+			notFoundMsg, _ := h.bot.Send(tgbotapi.NewMessage(chatID, "📭 Товары с таким названием не найдены."))
+			data.messageToDel = append(data.messageToDel, notFoundMsg.MessageID)
+			time.Sleep(3 * time.Second) // Чтобы админ прочитал даем 3 сек
+
+			// Автоматический удаляем все промежуточные вопросы бота и сообщ user
+			h.clearSessionMessages(chatID, data.messageToDel)
+
 			delete(waiting, chatID)
+			delete(tempData, chatID)
 		}
 		// strings.Builder для красивой сборке текста списка
 		var builder strings.Builder
@@ -300,6 +359,11 @@ func (h *Handler) handlerAdminSteps(state, text string, chatID int64) {
 		msg := tgbotapi.NewMessage(chatID, builder.String())
 		msg.ParseMode = "Markdown"
 		h.bot.Send(msg)
+
+		// Автоматический удаляем все промежуточные вопросы бота и сообщ user
+		//h.clearSessionMessages(chatID, data.messageToDel)
+		h.clearSessionMessages(chatID, delData.msgToDel)
+		h.clearSessionMessages(chatID, saveAndDel[chatID].msgToDel)
 
 		delete(waiting, chatID)
 		delete(tempData, chatID)
