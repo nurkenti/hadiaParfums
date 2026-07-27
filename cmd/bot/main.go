@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 
@@ -14,6 +15,22 @@ import (
 )
 
 func main() {
+	dbUser := os.Getenv("DB_USER")
+	dbPassword := os.Getenv("DB_PASSWORD")
+	dbHost := os.Getenv("DB_HOST")
+	dbPort := os.Getenv("DB_PORT")
+	dbName := os.Getenv("DB_NAME")
+
+	if dbHost == "" {
+		dbHost = "localhost"
+	}
+
+	dsn := fmt.Sprintf("postgresql://%s:%s@%s:%s/%s?sslmode=disable", dbUser, dbPassword, dbHost, dbPort, dbName)
+
+	dbSource := os.Getenv("DB_SOURCE")
+	if dbSource == "" {
+		log.Fatal("DB_SOURCE не заполнен в .env")
+	}
 
 	err := godotenv.Load()
 	if err != nil {
@@ -35,9 +52,9 @@ func main() {
 	log.Printf("Authorized on account %s", bot.Self.UserName)
 
 	// Подключение к базе данных
-	conn, err := pgx.Connect(context.Background(), "postgresql://root:secret@localhost:5432/hadiaParfums?sslmode=disable")
+	conn, err := pgx.Connect(context.Background(), dsn)
 	if err != nil {
-		log.Fatal("db isn't connect")
+		log.Fatal("db isn't connect: ", err)
 	}
 	defer conn.Close(context.Background())
 
