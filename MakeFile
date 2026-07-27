@@ -1,3 +1,5 @@
+include .env
+export
 build:
 	go build -o bin/hadiaParfums  cmd/main.go
 
@@ -11,19 +13,19 @@ test:
 	go test -v ./...
 
 createdb:
-	docker exec -it postgres19 createdb --username=root --owner=root hadiaParfums
+	docker exec -it postgres19 createdb --username=$(DB_USER) --owner=$(DB_USER) $(DB_NAME)
 
 dropdb:
-	docker exec -it postgres19 dropdb hadiaParfums
+	docker exec -it postgres19 dropdb $(DB_NAME)
 
 postgres:
-	docker run --name postgres19 -p 5432:5432 -e POSTGRES_USER=root -e POSTGRES_PASSWORD=secret -d postgres:19beta1-alpine
+	docker run --name postgres19 -p $(DB_PORT):5432 -e POSTGRES_USER=$(DB_USER) -e POSTGRES_PASSWORD=$(DB_PASSWORD) -d postgres:19beta1-alpine
 
 migrateup:
-	migrate -path migration -database "postgresql://root:secret@localhost:5432/hadiaParfums?sslmode=disable" -verbose up
+	migrate -path migration -database "$(DB_SOURCE)" -verbose up
 
 migratedown:
-	migrate -path migration -database "postgresql://root:secret@localhost:5432/hadiaParfums?sslmode=disable" -verbose down
+	migrate -path migration -database "$(DB_SOURCE)" -verbose down
 
 sqlc:
 	sqlc generate
