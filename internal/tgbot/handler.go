@@ -217,7 +217,7 @@ func (h *Handler) HandlerMsgAdmin(msg *tgbotapi.Message, chatID int64) {
 	switch msg.Text {
 	case "/start":
 		h.clearSessionMessages(chatID, saveAndDel[chatID].msgToDel)
-		h.AdmService(chatID, msg.MessageID)
+		h.AdmService(chatID, msg.MessageID)	
 	case "Товар":
 		h.AddProdMenu(chatID, msg.MessageID)
 	case "Добавить":
