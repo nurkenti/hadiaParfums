@@ -15,21 +15,27 @@ const createUser = `-- name: CreateUser :one
 INSERT INTO users (
   chat_id,
   lang,
-  name
-  
-) VALUES (
-  $1, $2 , $3
+  name,
+  is_admin
+)VALUES (
+  $1, $2 , $3, $4 
 )RETURNING id, chat_id, name, lang, is_admin, created_at
 `
 
 type CreateUserParams struct {
-	ChatID int64
-	Lang   pgtype.Text
-	Name   string
+	ChatID  int64
+	Lang    pgtype.Text
+	Name    string
+	IsAdmin pgtype.Bool
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
-	row := q.db.QueryRow(ctx, createUser, arg.ChatID, arg.Lang, arg.Name)
+	row := q.db.QueryRow(ctx, createUser,
+		arg.ChatID,
+		arg.Lang,
+		arg.Name,
+		arg.IsAdmin,
+	)
 	var i User
 	err := row.Scan(
 		&i.ID,
@@ -143,6 +149,32 @@ type UpdateUserParams struct {
 
 func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error) {
 	row := q.db.QueryRow(ctx, updateUser, arg.ChatID, arg.Lang)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.ChatID,
+		&i.Name,
+		&i.Lang,
+		&i.IsAdmin,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const updateUserByAdmin = `-- name: UpdateUserByAdmin :one
+UPDATE users
+SET is_admin = $2
+WHERE chat_id = $1
+RETURNING id, chat_id, name, lang, is_admin, created_at
+`
+
+type UpdateUserByAdminParams struct {
+	ChatID  int64
+	IsAdmin pgtype.Bool
+}
+
+func (q *Queries) UpdateUserByAdmin(ctx context.Context, arg UpdateUserByAdminParams) (User, error) {
+	row := q.db.QueryRow(ctx, updateUserByAdmin, arg.ChatID, arg.IsAdmin)
 	var i User
 	err := row.Scan(
 		&i.ID,

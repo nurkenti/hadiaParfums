@@ -2,10 +2,10 @@
 INSERT INTO users (
   chat_id,
   lang,
-  name
-  
-) VALUES (
-  $1, $2 , $3
+  name,
+  is_admin
+)VALUES (
+  $1, $2 , $3, $4 
 )RETURNING *;
 
 -- name: GetUser :one
@@ -25,6 +25,12 @@ OFFSET $2;
 -- name: UpdateUser :one
 UPDATE users
 SET lang = $2
+WHERE chat_id = $1
+RETURNING *;
+
+-- name: UpdateUserByAdmin :one
+UPDATE users
+SET is_admin = $2
 WHERE chat_id = $1
 RETURNING *;
 

@@ -24,9 +24,10 @@ OFFSET $2;
 
 -- name: ListProductByName :many
 SELECT * FROM products
+WHERE name ILIKE $1
 ORDER BY name
-LIMIT $1
-OFFSET $2;
+LIMIT $2
+OFFSET $3;
 
 
 -- name: UpdateProductCategory :one

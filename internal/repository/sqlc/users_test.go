@@ -28,4 +28,4 @@ func TestCreateUser(t *testing.T) {
 		require.NotZero(t, arg.Lang.String, user.Lang.String)
 		require.Empty(t, arg.Lang.String)
 	}
-}
+} 

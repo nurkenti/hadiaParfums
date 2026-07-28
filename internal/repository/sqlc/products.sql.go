@@ -126,18 +126,20 @@ func (q *Queries) ListProductByID(ctx context.Context, arg ListProductByIDParams
 
 const listProductByName = `-- name: ListProductByName :many
 SELECT id, name, description, category, created_at FROM products
+WHERE name ILIKE $1
 ORDER BY name
-LIMIT $1
-OFFSET $2
+LIMIT $2
+OFFSET $3
 `
 
 type ListProductByNameParams struct {
+	Name   string
 	Limit  int32
 	Offset int32
 }
 
 func (q *Queries) ListProductByName(ctx context.Context, arg ListProductByNameParams) ([]Product, error) {
-	rows, err := q.db.Query(ctx, listProductByName, arg.Limit, arg.Offset)
+	rows, err := q.db.Query(ctx, listProductByName, arg.Name, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
