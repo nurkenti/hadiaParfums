@@ -29,17 +29,23 @@ Telegram bot backend for a perfume store. Built with Go, PostgreSQL, sqlc, and D
 ├── Makefile             # Helper commands for build and execution
 ├── sqlc.yaml            # sqlc code generator configuration
 └── docker-compose.yaml  # Environment orchestrator
+```
 
 
 ## Local Setup
 
 1. **Clone the repository:**
    ```bash
-   git clone [https://github.com/nurkenti/hadiaParfums.git](https://github.com/nurkenti/hadiaParfums.git)
+   git clone https://github.com/nurkenti/hadiaParfums.git
    cd hadiaParfums
+   ```
 
-Configure environment:
-cp .env.example .env
+2. **Configure environment:**
+   ```bash
+   cp .env.example .env
+   ```
 
-Run via Docker:
-docker-compose up --build
+3. **Run via Docker:**
+   ```bash
+   docker-compose up --build
+   ```
