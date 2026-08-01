@@ -21,7 +21,7 @@ jobs:
         env:
           POSTGRES_USER: root
           POSTGRES_PASSWORD: secret
-          POSTGRES_DB: test_db
+          POSTGRES_DB: hadiaParfums
         ports:
           - 5432:5432
         options: >-
@@ -45,6 +45,13 @@ jobs:
 
     - name: Test
       env:
-        DB_SOURCE: "postgresql://root:secret@localhost:5432/hadiaPargums?sslmode=disable"
+       # Передаём переменные окружения, если код использует их для подключения:
+          DB_SOURCE: "postgresql://root:secret@localhost:5432/hadiaParfums?sslmode=disable"
+          DB_DRIVER: "postgres"
+          DB_NAME: "hadiaParfums"
+          DB_USER: "root"
+          DB_PASSWORD: "secret"
+          DB_HOST: "localhost"
+          DB_PORT: "5432"
       run: go test -v ./...
 
