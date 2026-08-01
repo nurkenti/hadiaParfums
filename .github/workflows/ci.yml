@@ -45,6 +45,6 @@ jobs:
 
     - name: Test
       env:
-        DB_SOURCE: "postgresql://root:secret@localhost:5432/test_db?sslmode=disable"
+        DB_SOURCE: "postgresql://root:secret@localhost:5432/hadiaPargums?sslmode=disable"
       run: go test -v ./...
 
