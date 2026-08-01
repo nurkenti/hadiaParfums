@@ -43,7 +43,7 @@ jobs:
     - name: Run migrations
       run: |
         docker run --rm \
-          -v ${{ github.workspace }}/migration\
+          -v ${{ github.workspace }}/migration:/migrations \
           --network host\
           migrate/migrate\
           -path=/migrations\
