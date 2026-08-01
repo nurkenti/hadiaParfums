@@ -39,6 +39,15 @@ jobs:
       uses: actions/setup-go@v4
       with:
         go-version: '1.26'
+    
+    - name: Run migrations
+      run: |
+        docker run --rm \
+          -v ${{ github.workspace }}/migration\
+          --network house\
+          migrate/migrate\
+          -path=/migrations\
+          -database "postgresql://root:secret@localhost:5432/hadiaParfums?sslmode=disable" up
 
     - name: Build
       run: go build -v ./...
