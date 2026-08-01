@@ -44,7 +44,7 @@ jobs:
       run: |
         docker run --rm \
           -v ${{ github.workspace }}/migration\
-          --network house\
+          --network host\
           migrate/migrate\
           -path=/migrations\
           -database "postgresql://root:secret@localhost:5432/hadiaParfums?sslmode=disable" up
